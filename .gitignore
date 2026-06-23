@@ -13,5 +13,6 @@ Thumbs.db
 # Development
 node_modules/
 dist/
+release/
 *.log
 .env

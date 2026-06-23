@@ -1,0 +1,50 @@
+{
+  "name": "terrain-3d-generator",
+  "version": "1.0.0",
+  "description": "🏔️ 3D地形图生成器 - 基于 Three.js 的桌面端地形生成工具",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable",
+    "build:dir": "electron-builder --win --dir",
+    "pack": "electron-builder --win portable --x64"
+  },
+  "author": "1662152688xxq-hash",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.terrain-3d-generator.app",
+    "productName": "3D地形生成器",
+    "directories": {
+      "output": "release"
+    },
+    "electronVersion": "28.3.3",
+    "files": [
+      "main.js",
+      "index.html",
+      "style.css",
+      "js/**/*",
+      "node_modules/three/**/*",
+      "LICENSE",
+      "README.md"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": null
+    },
+    "portable": {
+      "artifactName": "3D地形生成器-${version}-setup.exe"
+    }
+  }
+}
