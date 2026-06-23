@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 地形图生成器</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 加载提示 -->
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>加载中...</p>
+    </div>
+
+    <!-- 错误提示 -->
+    <div id="error-toast" class="hidden"></div>
+
+    <!-- 顶部导航 -->
+    <header>
+        <h1>🏔️ 3D 地形生成器</h1>
+        <div class="header-actions">
+            <button class="btn btn-sm" onclick="showAbout()">关于</button>
+            <a href="https://github.com/your-username/terrain-3d-generator" target="_blank" class="btn btn-sm">GitHub</a>
+        </div>
+    </header>
+
+    <!-- 主布局 -->
+    <div class="main-container">
+        <!-- 左侧控制面板 -->
+        <aside id="controls">
+            <div class="panel-section">
+                <h3>生成方式</h3>
+                <div class="btn-group" id="mode-tabs">
+                    <button class="btn btn-tab active" data-mode="procedural" onclick="switchMode('procedural')">🎲 程序化</button>
+                    <button class="btn btn-tab" data-mode="image" onclick="switchMode('image')">🖼️ 图片高度图</button>
+                </div>
+            </div>
+
+            <!-- 程序化生成参数 -->
+            <div id="procedural-params" class="panel-section">
+                <h3>地形参数</h3>
+
+                <div class="param-group">
+                    <label>
+                        <span>地形尺寸</span>
+                        <span class="value" id="size-val">100</span>
+                    </label>
+                    <input type="range" id="size" min="20" max="200" value="100" step="1">
+                </div>
+
+                <div class="param-group">
+                    <label>
+                        <span>网格分辨率</span>
+                        <span class="value" id="resolution-val">128</span>
+                    </label>
+                    <input type="range" id="resolution" min="16" max="512" value="128" step="8">
+                    <span class="hint">越高越精细，但性能消耗越大</span>
+                </div>
+
+                <div class="param-group">
+                    <label>
+                        <span>高度强度</span>
+                        <span class="value" id="height-val">20</span>
+                    </label>
+                    <input type="range" id="height" min="1" max="80" value="20" step="0.5">
+                </div>
+
+                <div class="param-group">
+                    <label>
+                        <span>噪声缩放</span>
+                        <span class="value" id="scale-val">0.03</span>
+                    </label>
+                    <input type="range" id="scale" min="0.005" max="0.1" value="0.03" step="0.001">
+                </div>
+
+                <div class="param-group">
+                    <label>
+                        <span>八度（细节层）</span>
+                        <span class="value" id="octaves-val">6</span>
+                    </label>
+                    <input type="range" id="octaves" min="1" max="10" value="6" step="1">
+                </div>
+
+                <div class="param-group">
+                    <label>
+                        <span>持续度</span>
+                        <span class="value" id="persistence-val">0.5</span>
+                    </label>
+                    <input type="range" id="persistence" min="0.1" max="0.9" value="0.5" step="0.05">
+                </div>
+
+                <div class="param-group">
+                    <label>
+                        <span>频率倍率</span>
+                        <span class="value" id="lacunarity-val">2.0</span>
+                    </label>
+                    <input type="range" id="lacunarity" min="1.0" max="4.0" value="2.0" step="0.1">
+                </div>
+
+                <div class="param-group">
+                    <label>
+                        <span>种子</span>
+                        <span class="value" id="seed-val">42</span>
+                    </label>
+                    <input type="range" id="seed" min="0" max="999" value="42" step="1">
+                </div>
+
+                <div class="preset-btns">
+                    <button class="btn btn-xs" onclick="applyPreset('mountain')">🏔️ 山脉</button>
+                    <button class="btn btn-xs" onclick="applyPreset('hills')">⛰️ 丘陵</button>
+                    <button class="btn btn-xs" onclick="applyPreset('plain')">🌄 平原</button>
+                    <button class="btn btn-xs" onclick="applyPreset('canyon')">🏜️ 峡谷</button>
+                </div>
+            </div>
+
+            <!-- 图片高度图参数 -->
+            <div id="image-params" class="panel-section hidden">
+                <h3>上传高度图</h3>
+                <p class="hint">上传一张灰度图，白色为高，黑色为低。支持 PNG/JPG。</p>
+                <div class="file-upload-area" id="drop-zone">
+                    <input type="file" id="file-input" accept="image/png,image/jpeg,image/jpg">
+                    <div class="upload-prompt">
+                        <span class="upload-icon">📂</span>
+                        <p>点击选择图片或拖拽到此处</p>
+                    </div>
+                    <img id="preview" class="hidden">
+                </div>
+                <div class="param-group">
+                    <label>
+                        <span>高度强度</span>
+                        <span class="value" id="img-height-val">30</span>
+                    </label>
+                    <input type="range" id="img-height" min="1" max="100" value="30" step="0.5">
+                </div>
+            </div>
+
+            <!-- 颜色方案 -->
+            <div class="panel-section">
+                <h3>颜色方案</h3>
+                <select id="color-scheme">
+                    <option value="elevation">🗺️ 高程着色</option>
+                    <option value="satellite">🛰️ 卫星风格</option>
+                    <option value="thermal">🔥 热力图</option>
+                    <option value="grayscale">⬜ 灰度</option>
+                    <option value="custom">🎨 自定义</option>
+                </select>
+
+                <div id="custom-colors" class="hidden">
+                    <div class="color-stop-row">
+                        <span>低</span>
+                        <input type="color" id="color-low" value="#2d5a27">
+                        <span>中</span>
+                        <input type="color" id="color-mid" value="#8b7355">
+                        <span>高</span>
+                        <input type="color" id="color-high" value="#ffffff">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 显示选项 -->
+            <div class="panel-section">
+                <h3>显示选项</h3>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="show-wireframe" checked>
+                    <span>线框叠加</span>
+                </label>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="show-grid" checked>
+                    <span>网格地面</span>
+                </label>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="auto-rotate" checked>
+                    <span>自动旋转</span>
+                </label>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="panel-section actions">
+                <button class="btn btn-primary" id="generate-btn" onclick="generate()">
+                    🔄 生成地形
+                </button>
+                <div class="btn-group-full">
+                    <button class="btn" onclick="exportSTL()">📦 导出 STL</button>
+                    <button class="btn" onclick="exportOBJ()">📦 导出 OBJ</button>
+                </div>
+                <button class="btn" onclick="screenshot()">📸 截图保存</button>
+            </div>
+        </aside>
+
+        <!-- 3D 视口 -->
+        <main id="viewport">
+            <div id="canvas-container"></div>
+            <div id="viewport-info">
+                <span id="info-vertices">顶点: 0</span>
+                <span id="info-faces">面: 0</span>
+                <span id="info-height">最高: 0</span>
+                <span id="info-fps">FPS: 0</span>
+            </div>
+            <div id="coord-display">X: 0 Y: 0 Z: 0</div>
+        </main>
+    </div>
+
+    <!-- 模态框（关于） -->
+    <div id="about-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" onclick="closeAbout()">&times;</span>
+            <h2>关于 3D 地形生成器</h2>
+            <p>基于 Three.js 的 3D 地形图生成工具。</p>
+            <h3>功能</h3>
+            <ul>
+                <li>程序化地形生成（分形布朗运动 + Perlin噪声）</li>
+                <li>从图片高度图生成地形</li>
+                <li>多种颜色方案</li>
+                <li>导出 STL / OBJ 用于3D打印</li>
+                <li>截图保存</li>
+            </ul>
+            <h3>技术栈</h3>
+            <ul>
+                <li>Three.js - 3D 渲染</li>
+                <li>Vanilla JS - 无框架依赖</li>
+            </ul>
+            <p class="footer-text">Made with ❤️</p>
+        </div>
+    </div>
+
+    <!-- 引入 Three.js -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <!-- 脚本加载 -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
